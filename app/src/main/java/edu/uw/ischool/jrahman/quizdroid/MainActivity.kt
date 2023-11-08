@@ -17,24 +17,7 @@ class MainActivity : AppCompatActivity() {
     data class Question(val text: String, val options: List<String>, val correctAnswer: Int)
     data class Topic(val name: String, val description: String, val questions: List<Question>)
 
-    private val topics = listOf(
-        Topic("Math", "A quiz about mathematical concepts", listOf(
-            Question("What's 2+2?", listOf("3", "4", "5", "6"), 1),
-            Question("What's 20/2?", listOf("35", "32", "10", "61"), 2),
-            Question("What's 10-8?", listOf("2", "90", "6", "8"), 0),
-        )),
-        Topic("Physics", "A quiz about Newton's Laws", listOf(
-            Question("What's Newton's 3rd Law?", listOf("Freedom of Speech", "Right to Remain Silent", "For every action (force) in nature there is an equal and opposite reaction", "IDK"), 2),
-            Question("Kepler’s First Law of Planetary Motion is known as?", listOf("Laws of areas", "Law of elliptical orbits", "Harmonic laws", "Hmm.. Couldn't Tell You"), 1),
-            Question("A properly cut diamond appears bright because of", listOf("Total volume", "Refraction", "Its natural color", "Total reflection"), 3),
-        )),
-        Topic("Marvel Superheros", "A quiz about Marvel Superhero's", listOf(
-            Question("Which actor plays Iron Man in the MCU?", listOf("Christan Bale", "Ben Afleck ", "Robert Downey Jr", "Dwayne Johnson"), 2),
-            Question("What comes with Great Power?", listOf("Great Responsibility", "Money", "Good Grades", "Unlimited McChickens"), 0),
-            Question("What is Captain America's Shield Made of?", listOf("Titanium", "Iron ", "Vibranium", "The Time Stone"), 2),
-        )),
-    )
-
+    private lateinit var topics: List<Topic>
 
     private var currentTopicIndex: Int = 0
     private var currentQuestionIndex: Int = 0
@@ -54,9 +37,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var questionPageLayout: View
     private lateinit var answerPageLayout: View
 
+    private lateinit var topicRepository: TopicRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        topicRepository = QuizApp.getInstance().getTopicRepository()
+        topics = topicRepository.getTopics()
 
         topicRecyclerView = findViewById(R.id.topicRecyclerView)
         topicDescription = findViewById(R.id.topicDescription)
@@ -87,13 +75,8 @@ class MainActivity : AppCompatActivity() {
         beginButton.setOnClickListener { showQuestionPage(0) }
         submitAnswerButton.setOnClickListener { evaluateAnswer() }
         answerOptions.setOnCheckedChangeListener { _, checkedId ->
-            if (checkedId != -1) {
-                submitAnswerButton.visibility = View.VISIBLE
-            } else {
-                submitAnswerButton.visibility = View.GONE
-            }
+            submitAnswerButton.visibility = if (checkedId != -1) View.VISIBLE else View.GONE
         }
-
     }
 
     private fun showTopicSelection() {
