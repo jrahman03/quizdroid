@@ -88,4 +88,37 @@
             android:layout_height="wrap_content" />
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <EditText
+            android:id="@+id/urlEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="URL for question data" />
+
+        <EditText
+            android:id="@+id/updateFrequencyEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:hint="Update frequency in minutes" />
+
+
+
+        <Button
+            android:id="@+id/savePreferencesButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Save Preferences" />
+    </LinearLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>
+
+

@@ -1,16 +1,20 @@
 package edu.uw.ischool.jrahman.quizdroid
 
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.RadioButton
-import android.widget.TextView
 import android.widget.Button
+import android.widget.EditText
+import android.widget.RadioButton
 import android.widget.RadioGroup
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import android.util.Log
+import android.widget.Toast
 
 class MainActivity : AppCompatActivity() {
 
@@ -18,10 +22,14 @@ class MainActivity : AppCompatActivity() {
     data class Topic(val name: String, val description: String, val questions: List<Question>)
 
     private lateinit var topics: List<Topic>
-
     private var currentTopicIndex: Int = 0
     private var currentQuestionIndex: Int = 0
     private var score: Int = 0
+
+    private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var urlEditText: EditText
+    private lateinit var updateFrequencyEditText: EditText
+    private lateinit var savePreferencesButton: Button
 
     private lateinit var topicRecyclerView: RecyclerView
     private lateinit var topicDescription: TextView
@@ -36,16 +44,38 @@ class MainActivity : AppCompatActivity() {
     private lateinit var topicOverviewLayout: View
     private lateinit var questionPageLayout: View
     private lateinit var answerPageLayout: View
-
     private lateinit var topicRepository: TopicRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        Log.d("MainActivity", "onCreate called")
 
-        topicRepository = QuizApp.getInstance().getTopicRepository()
+        sharedPreferences = getSharedPreferences("QuizAppPreferences", MODE_PRIVATE)
+        urlEditText = findViewById(R.id.urlEditText)
+        updateFrequencyEditText = findViewById(R.id.updateFrequencyEditText)
+        savePreferencesButton = findViewById(R.id.savePreferencesButton)
+        topicRecyclerView = findViewById(R.id.topicRecyclerView)
+        topicRepository = QuizApp.instance.topicRepository
+
+        refreshTopics()
+        initializeViews()
+
+        savePreferencesButton.setOnClickListener {
+            Log.d("MainActivity", "Save Preferences Button Clicked")
+            if (savePreferences()) {
+                showTopicSelection()
+                loadPreferencesAndFetchData()
+            }
+        }
+    }
+
+    fun refreshTopics() {
         topics = topicRepository.getTopics()
+        topicRecyclerView.adapter?.notifyDataSetChanged()
+    }
 
+    private fun initializeViews() {
         topicRecyclerView = findViewById(R.id.topicRecyclerView)
         topicDescription = findViewById(R.id.topicDescription)
         beginButton = findViewById(R.id.beginButton)
@@ -62,9 +92,7 @@ class MainActivity : AppCompatActivity() {
         submitAnswerButton.visibility = View.GONE
 
         val backButton: Button = findViewById(R.id.backButton)
-        backButton.setOnClickListener {
-            showTopicSelection()
-        }
+        backButton.setOnClickListener { showTopicSelection() }
 
         topicRecyclerView.layoutManager = LinearLayoutManager(this)
         topicRecyclerView.adapter = TopicAdapter(topics) { topicIndex ->
@@ -76,6 +104,38 @@ class MainActivity : AppCompatActivity() {
         submitAnswerButton.setOnClickListener { evaluateAnswer() }
         answerOptions.setOnCheckedChangeListener { _, checkedId ->
             submitAnswerButton.visibility = if (checkedId != -1) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun savePreferences(): Boolean {
+        val url = urlEditText.text.toString()
+        val updateFrequency = updateFrequencyEditText.text.toString().toIntOrNull() ?: 0
+
+        if (url.isBlank() || updateFrequency <= 0) {
+            Toast.makeText(this, "Invalid input", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        val editor = sharedPreferences.edit()
+        editor.putString("URL", url)
+        editor.putInt("UpdateFrequency", updateFrequency)
+        editor.apply()
+
+        Toast.makeText(this, "Preferences saved", Toast.LENGTH_SHORT).show()
+        Log.d("MainActivity", "Preferences saved: URL - $url, Frequency - $updateFrequency")
+        return true
+    }
+
+    private fun loadPreferencesAndFetchData() {
+        Log.d("MainActivity", "loadPreferencesAndFetchData called")
+
+        val quizApp = application as QuizApp
+        quizApp.downloadAndUpdateTopics { fetchedTopics ->
+            Log.d("MainActivity", "Data fetched, number of topics: ${fetchedTopics.size}")
+            runOnUiThread {
+                topics = fetchedTopics
+                topicRecyclerView.adapter?.notifyDataSetChanged()
+            }
         }
     }
 
@@ -188,3 +248,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 }
+
+
+
