@@ -1,7 +1,6 @@
 package edu.uw.ischool.jrahman.quizdroid
 
 import android.app.Application
-import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import java.io.InputStreamReader
@@ -14,7 +13,6 @@ class QuizApp : Application() {
     companion object {
         lateinit var instance: QuizApp
             private set
-        private const val DEFAULT_JSON_URL = "http://tednewardsandbox.site44.com/questions.json"
     }
 
     lateinit var topicRepository: TopicRepository
@@ -25,16 +23,13 @@ class QuizApp : Application() {
         topicRepository = InMemoryTopicRepository()
     }
 
-    fun downloadAndUpdateTopics(onComplete: (List<MainActivity.Topic>) -> Unit) {
-        val sharedPreferences = getSharedPreferences("QuizAppPreferences", Context.MODE_PRIVATE)
-        val finalUrl = sharedPreferences.getString("URL", DEFAULT_JSON_URL) ?: DEFAULT_JSON_URL
-
+    fun downloadAndUpdateTopics(url: String, onComplete: (List<MainActivity.Topic>) -> Unit) {
         val executor = Executors.newSingleThreadExecutor()
         val mainHandler = Handler(Looper.getMainLooper())
 
         executor.execute {
             try {
-                val urlConnection = URL(finalUrl).openConnection() as HttpURLConnection
+                val urlConnection = URL(url).openConnection() as HttpURLConnection
                 val inputStream = urlConnection.inputStream
                 val reader = InputStreamReader(inputStream)
                 val jsonString = reader.readText()
@@ -43,7 +38,6 @@ class QuizApp : Application() {
                 mainHandler.post {
                     Log.d("QuizApp", "Data fetched successfully")
                     onComplete(topicRepository.getTopics())
-                    (applicationContext as? MainActivity)?.refreshTopics()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()

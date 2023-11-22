@@ -64,6 +64,9 @@ class MainActivity : AppCompatActivity() {
         savePreferencesButton.setOnClickListener {
             Log.d("MainActivity", "Save Preferences Button Clicked")
             if (savePreferences()) {
+                urlEditText.visibility = View.GONE
+                updateFrequencyEditText.visibility = View.GONE
+                savePreferencesButton.visibility = View.GONE
                 showTopicSelection()
                 loadPreferencesAndFetchData()
             }
@@ -111,6 +114,7 @@ class MainActivity : AppCompatActivity() {
         val url = urlEditText.text.toString()
         val updateFrequency = updateFrequencyEditText.text.toString().toIntOrNull() ?: 0
 
+
         if (url.isBlank() || updateFrequency <= 0) {
             Toast.makeText(this, "Invalid input", Toast.LENGTH_SHORT).show()
             return false
@@ -128,22 +132,29 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadPreferencesAndFetchData() {
         Log.d("MainActivity", "loadPreferencesAndFetchData called")
-
+        val url = sharedPreferences.getString("URL", "http://tednewardsandbox.site44.com/questions.json") ?: "http://tednewardsandbox.site44.com/questions.json"
         val quizApp = application as QuizApp
-        quizApp.downloadAndUpdateTopics { fetchedTopics ->
-            Log.d("MainActivity", "Data fetched, number of topics: ${fetchedTopics.size}")
+        quizApp.downloadAndUpdateTopics(url) { fetchedData ->
             runOnUiThread {
-                topics = fetchedTopics
-                topicRecyclerView.adapter?.notifyDataSetChanged()
+                if (fetchedData is List<*>) {
+                    val fetchedTopics = fetchedData
+                    Log.d("MainActivity", "Data fetched, number of topics: ${fetchedTopics.size}")
+                    topics = fetchedTopics
+                    (topicRecyclerView.adapter as? TopicAdapter)?.updateTopics(topics)
+                } else {
+                    Log.e("MainActivity", "Error: fetched data is not a list of topics.")
+                }
             }
         }
     }
+
 
     private fun showTopicSelection() {
         topicRecyclerView.visibility = View.VISIBLE
         topicOverviewLayout.visibility = View.GONE
         questionPageLayout.visibility = View.GONE
         answerPageLayout.visibility = View.GONE
+
     }
 
     private fun showTopicOverview(topicIndex: Int) {
@@ -212,7 +223,6 @@ class MainActivity : AppCompatActivity() {
         currentTopicIndex = 0
         currentQuestionIndex = 0
         score = 0
-
         topicOverviewLayout.visibility = View.GONE
         questionPageLayout.visibility = View.GONE
         answerPageLayout.visibility = View.GONE
@@ -220,9 +230,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     inner class TopicAdapter(
-        private val topics: List<Topic>,
+        private var topics: List<Topic>,
         private val itemClick: (Int) -> Unit
     ) : RecyclerView.Adapter<TopicAdapter.ViewHolder>() {
+
+        fun updateTopics(newTopics: List<Topic>) {
+            this.topics = newTopics
+            notifyDataSetChanged()
+        }
 
         inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val topicName: TextView = view.findViewById(R.id.topicName)
